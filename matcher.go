@@ -111,20 +111,33 @@ type pathWithVarsMatcher struct {
 	regex *regexp.Regexp
 }
 
+type variable struct {
+	firstIndex int
+	lastIndex  int
+}
+
 func newPathWithVarsMatcher(path string) pathWithVarsMatcher {
 
-Loop:
-	for {
-		switch {
-		case strings.Contains(path, ":number"):
-			path = strings.Replace(path, ":number", "([0-9]{1,})", -1)
-			continue
-		case strings.Contains(path, ":string"):
-			path = strings.Replace(path, ":string", "([a-zA-Z]{1,})", -1)
-			continue
-		default:
+	vars := variable{}
+	for i := 0; i <= len(path)-1; i++ {
+		char := string(path[i])
+		if char == ":" {
+			vars.firstIndex = i
+		} else if vars.firstIndex != 0 && (char == "/" || i == len(path)-1) {
+			vars.lastIndex = i
 
-			break Loop
+			if vars.lastIndex == len(path)-1 {
+				vars.lastIndex++
+			}
+
+			seg := path[vars.firstIndex:vars.lastIndex]
+			if seg == ":number" {
+				path = path[:vars.firstIndex] + "([0-9]{1,})" + path[vars.lastIndex:]
+				vars = variable{}
+			} else if seg == ":string" {
+				path = path[:vars.firstIndex] + "([a-zA-Z]{1,})" + path[vars.lastIndex:]
+				vars = variable{}
+			}
 		}
 	}
 
